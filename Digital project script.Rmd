@@ -1,0 +1,275 @@
+---
+title: "Web Scraping with R using Selector Gadget"
+author: "Ruta Slivkaite & Jakub Raszka"
+date: "12/10/2020"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, libraries}
+
+library(rvest)
+library(dplyr)
+library(janitor)
+library(tidyverse)
+library(tidyr)
+library(tidytext)
+
+sessionInfo()
+
+```
+
+
+
+This R markdown document is a part of the Digital project "Demystifying Cognitive Science jobs" for Cultural Data science class 2020 as part of Cognitive science bachelor´s degree program at Aarhus University.
+
+Here, the code for web scraping the Graduateland.com website is described and explained as well as the further data processing and cleaning. The web scraping was done on the 17th of November 2020. Selector Gadget, an open source Chrome Extension, was used to select the parts of the website and get the relevant tags to get access to that part. The tags were included in the sraping function as html nodes.
+
+
+
+## Web scraping 1: Getting the cognitive science jobs´ links from graduateland.com
+
+```{r, web scraping 1: job links}
+
+## Function to get the links of each cogsci job post on the website
+page_scrape <- function(page_number) {
+    # parsing an url into xml document + allowing to update the page number
+  url <- paste0("https://graduateland.com/jobs?keyword=cognitive%20science&languages%5B%5D=1&limit=10&offset=", page_number)
+  jobs <- read_html(url)
+    # scraping elements of interest (nodes) from the site and saving it into separate dataframes
+  links <- as.data.frame(html_attr(html_nodes(jobs, ".job-box"), "href", "hreflang=en"))
+  
+}
+
+
+## Looping through page numbers of the website to get the links from each page
+page_numbers <- data_frame(page_numbers = seq(from = 0, to = 8180, by = 10))
+
+## Applying the fuction to all the pages
+jobs <- page_numbers %>%
+  group_by(page_numbers) %>%
+  do(page_scrape(.$page_numbers))
+
+## Renaming the columns
+names(jobs)[1] <- "page_number"
+names(jobs)[2] <- "link"
+
+## Changing classes
+jobs$link <- as.character(jobs$link)
+jobs <- data.frame(jobs)
+view(jobs)
+
+## Saving the dataset
+write.csv(jobs, "C:/Users/Ruta/Documents/Rutos SmuTkes/Introduction to cultural data science/Cultural-data-science/cogsci_jobs_webscrape_on_11-17th.csv")
+
+jobs <- read.csv("C:/Users/Ruta/Documents/Rutos SmuTkes/Introduction to cultural data science/Cultural-data-science/cogsci_jobs_webscrape_on_11-17th.csv")  ## 7744 job links
+
+
+
+```
+
+
+## Web scraping 2: Write a function for web scraping and after, executing the web scraping
+
+```{r, web scraping 2: job information}
+
+## Web scraping function
+
+scrape_jobs <- function(website){
+	url <- read_html(website)
+
+	# getting the title of the job
+	 title <- url %>%
+    html_nodes(".job-title-top h1") %>%
+    html_text %>% 
+	  str_replace_all(pattern = "\n", replacement = " ") %>%  
+	 as.data.frame()
+	
+	# getting the categories of the job
+	 category1 <- url %>%
+	   html_nodes("p:nth-child(4) span:nth-child(1)") %>%
+	   html_text() %>%
+	   str_replace_all(pattern = "\n", replacement = " ") %>% 
+	 as.data.frame()
+	 
+	 # removing white spaces from the text
+	 category1 <-  category1[!apply(category1 == "", 1, all),]
+
+	 
+	 category2 <- url %>%
+	   html_nodes("p:nth-child(4) span:nth-child(3)") %>%
+	   html_text() %>%
+	   str_replace_all(pattern = "\n", replacement = " ") %>%
+	   as.data.frame()
+	 
+	 category2 <-  category2[!apply(category2 == "", 1, all),]
+
+
+	 category3 <- url %>%
+	   html_nodes("p:nth-child(4) span:nth-child(5)") %>%
+	   html_text() %>%
+	   str_replace_all(pattern = "\n", replacement = " ") %>%
+	   as.data.frame()
+	 
+	 category3 <-  category3[!apply(category3 == "", 1, all),]
+	 
+	 category4 <- url %>%
+	   html_nodes("p:nth-child(4) span:nth-child(7)") %>%
+	   html_text() %>%
+	   str_replace_all(pattern = "\n", replacement = " ") %>%
+	   as.data.frame()
+	 
+	 category4 <-  category4[!apply(category4 == "", 1, all),]
+	 
+	 
+	 # getting the skills of the job
+	 skill1 <- url %>%
+	   html_nodes("p:nth-child(8) span:nth-child(1)") %>%
+	   html_text() %>%
+	   str_replace_all(pattern = "\n", replacement = " ") %>% 
+	 as.data.frame()
+	 
+	 skill1 <-  skill1[!apply(skill1 == "", 1, all),]
+
+
+	 skill2 <-  url %>%
+	   html_nodes("p:nth-child(8) span:nth-child(3)") %>%
+	   html_text() %>%
+	   str_replace_all(pattern = "\n", replacement = " ") %>% 
+	 as.data.frame()
+	 
+	 
+	 skill2 <-  skill2[!apply(skill2 == "", 1, all),]
+
+	 
+	 skill3 <-  url %>%
+	   html_nodes("p:nth-child(8) span:nth-child(5)") %>%
+	   html_text() %>%
+	   str_replace_all(pattern = "\n", replacement = " ") %>%
+	 as.data.frame()
+
+	 skill3 <-  skill3[!apply(skill3 == "", 1, all),]
+
+	 
+	 skill4 <-  url %>%
+	   html_nodes("p:nth-child(8) span:nth-child(7)") %>%
+	   html_text() %>%
+	   str_replace_all(pattern = "\n", replacement = " ") %>%
+	   as.data.frame()
+
+	 skill4 <-  skill4[!apply(skill4 == "", 1, all),]
+
+	 
+	 skill5 <-  url %>%
+	   html_nodes("p:nth-child(8) span:nth-child(9)") %>%
+	   html_text() %>%
+	   str_replace_all(pattern = "\n", replacement = " ") %>%
+	   as.data.frame()
+
+	 skill5 <-  skill5[!apply(skill5 == "", 1, all),]
+	 
+	 
+	 skill6 <-  url %>%
+	   html_nodes("p:nth-child(8) span:nth-child(11)") %>%
+	   html_text() %>%
+	   str_replace_all(pattern = "\n", replacement = " ") %>%
+	   as.data.frame()
+
+	 skill6 <-  skill6[!apply(skill6 == "", 1, all),]
+	
+  
+	 # getting other information about the job such as location,type, must have languages
+   description_values <- url %>%
+      html_nodes(".content-description p") %>%
+		  html_text()
+   # deleting unnecessary symbols and empty spaces
+   description_values <- description_values %>%
+      str_replace_all(pattern = "\n", replacement = " ") %>% 
+      str_replace_all(pattern = "\\s+", replacement = " ") 
+   # converting rows into columns      
+   description_values <- as.data.frame(as.matrix(t(description_values)))
+   
+   # saving all the sraped info into the dataframe
+  summary <- qpcR:::cbind.na(title, category1, category2, category3,category4, skill1, skill2, skill3, skill4, skill5, skill6, description_values)
+
+}
+
+## Actual web scraping in action
+
+  # creating an empty container for the scraped info
+  mastertable=NULL
+
+  # a loop running through each job post link and executing the web-scrape function, saving the output into the ´mastertable_4´
+for (i in 1:nrow(jobs)){
+  tryCatch({
+  url <- "https://graduateland.com"
+  website <- paste0(url, jobs$link[i])
+  summary <- scrape_jobs(website)
+  mastertable <- dplyr::bind_rows(mastertable, summary)
+ }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+}
+
+
+  # saving the table
+  write.csv(mastertable, "C:/Users/Ruta/Documents/Rutos SmuTkes/Introduction to cultural data science/Cultural-data-science/cogsci_jobs_summary_most_recent_full.csv")
+  jobs_scrape <- read.csv("C:/Users/Ruta/Documents/Rutos SmuTkes/Introduction to cultural data science/Cultural-data-science/cogsci_jobs_summary_most_recent_full.csv")
+  
+  
+```
+
+
+## Processing: Cleaning the web scraped data
+
+```{r, data cleaning}
+
+## Cleaning the dataframe
+
+  # loadind the dataframe
+  jobs_scrape <- read.csv("C:/Users/Ruta/Documents/Rutos SmuTkes/Introduction to cultural data science/Cultural-data-science/cogsci_jobs_summary_most_recent_full.csv")
+
+  # a function to get rid of every 2nd row, which was added for each job as a consequence of web-scraping
+  Nth.delete<-function(dataframe, n)dataframe[-(seq(n,to=nrow(dataframe),by=n)),]
+  jobs_scrape <- Nth.delete(jobs_scrape,2)
+
+  # removing first column
+  jobs_scrape <- jobs_scrape[,-1]
+  # renaming columns 
+  names(jobs_scrape)[1] <- "title"
+  names(jobs_scrape)[12] <- "location"
+  names(jobs_scrape)[14] <- "type"
+  names(jobs_scrape)[16] <- "must-have language"
+
+  # removing the rest of unnecessary columns
+  jobs_scrape <- jobs_scrape[,-13]
+  jobs_scrape <- jobs_scrape[,-14]
+  jobs_scrape <- jobs_scrape[,-15]
+  jobs_scrape <- jobs_scrape[,-15]
+
+  
+ # creating a long format: category
+  cogsci_jobs_long <- pivot_longer(jobs_scrape, c(category1, category2, category3, category4), values_to = "category", names_repair = "unique")
+  # creating a long format: skills
+  cogsci_jobs_long <- pivot_longer(cogsci_jobs_long, c(skill1, skill2, skill3, skill4, skill5), values_to = "skill", names_repair = "unique")
+  cogsci_jobs_long <- cogsci_jobs_long[,-2]
+
+  
+  # removing white space characters from some of the columns
+  cogsci_jobs_long$category <- cogsci_jobs_long$category %>% str_replace_all(pattern = "\\s+", replacement = " ")
+  cogsci_jobs_long$skill <- cogsci_jobs_long$skill %>% str_replace_all(pattern = "\\s+", replacement = " ")
+  
+  # fixing column names
+  names(cogsci_jobs_long)[5] <- "category rank"
+  names(cogsci_jobs_long)[7] <- "skill rank"
+  
+  # saving the cleaned data frame
+  write.csv(cogsci_jobs_long, "C:/Users/Ruta/Documents/Rutos SmuTkes/Introduction to cultural data science/Cultural-data-science/cogsci_jobs_CLEAN&LONG.csv")
+
+  
+```
+
